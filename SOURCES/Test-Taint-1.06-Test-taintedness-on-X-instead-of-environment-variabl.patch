@@ -1,0 +1,68 @@
+From cab25a93c2e8383cff35f55271a60f51645c98ff Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Petr=20P=C3=ADsa=C5=99?= <ppisar@redhat.com>
+Date: Wed, 18 Jan 2017 11:02:39 +0100
+Subject: [PATCH] Test taintedness on $^X instead of environment variables
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Test::Simple adds TEST_ACTIVE and TEST2_ACTIVE members into %Env.
+These are not tainted. t/tainted_ok.t and t/tainted.t tests can fail
+if they pick up one of them.
+
+This patch changes the tests to use $^X, interpreter path, instead as
+discussed and implemented in simalar Scalar-List-Utils' bug
+<https://rt.cpan.org/Public/Bug/Display.html?id=119169>.
+
+Signed-off-by: Petr Písař <ppisar@redhat.com>
+---
+ t/tainted.t    | 7 ++-----
+ t/tainted_ok.t | 5 +----
+ 2 files changed, 3 insertions(+), 9 deletions(-)
+
+diff --git a/t/tainted.t b/t/tainted.t
+index bf1e629..f5fb6d1 100644
+--- a/t/tainted.t
++++ b/t/tainted.t
+@@ -7,11 +7,8 @@ use Test::More tests => 6;
+ 
+ use Test::Taint;
+ 
+-my @keys = keys %ENV;
+-my $key = shift @keys;
+-
+ taint_checking_ok();
+-ok( tainted($ENV{$key}), "\$ENV{$key} is tainted" );
++ok( tainted($^X), "\$^X is tainted" );
+ 
+ my $foo = 43;
+ ok( !tainted($foo), '43 is not tainted' );
+@@ -21,7 +18,7 @@ RESET_SIG_DIE: {
+ 
+     local $SIG{__DIE__} = sub { $counter++ };
+ 
+-    ok( tainted($ENV{$key}), "\$ENV{$key} is tainted" );
++    ok( tainted($^X), "\$^X is tainted" );
+     is($counter, 0, 'counter was not incremented (our die did not fire)');
+ 
+     eval { die 'validly' };
+diff --git a/t/tainted_ok.t b/t/tainted_ok.t
+index 2dcc9db..ce87343 100644
+--- a/t/tainted_ok.t
++++ b/t/tainted_ok.t
+@@ -5,11 +5,8 @@ use strict;
+ 
+ use Test::Taint tests=>3;
+ 
+-my @keys = keys %ENV;
+-my $key = shift @keys;
+-
+ taint_checking_ok();
+-tainted_ok( $ENV{$key}, "\$ENV{$key} is tainted" );
++tainted_ok( $^X, "\$^X is tainted" );
+ 
+ my $foo = 43;
+ untainted_ok( $foo );
+-- 
+2.7.4
+
